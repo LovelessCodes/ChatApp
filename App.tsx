@@ -1,12 +1,5 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React, { useState } from 'react';
-import { Button, useColorScheme } from 'react-native';
+import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, Button, SafeAreaView, Text, useColorScheme } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 
@@ -17,9 +10,32 @@ import Login from './screens/login';
 import Rooms from './screens/rooms';
 import Chat from './screens/chat';
 import Camera from './screens/camera';
+
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
+
+import { envs } from './env';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+GoogleSignin.configure({
+  webClientId: envs.WEB_CLIENT_ID,
+})
+
+const AuthenticatedUserContext = createContext({
+  user: null,
+  setUser: (user: any) => {}
+})
+
+const AuthenticatedUserProvider = ({ children }: { children: ReactNode}) => {
+  const [user, setUser] = useState(null);
+  return (
+    <AuthenticatedUserContext.Provider value={{ user, setUser }}>
+      { children }
+    </AuthenticatedUserContext.Provider>
+  )
+}
 
 function AuthStack() {
   return (
@@ -29,14 +45,10 @@ function AuthStack() {
   )
 }
 
-function onSignOut() {
-  // Sign out function here
-}
-
 function ChatStack() {
   return (
     <Stack.Navigator initialRouteName="Rooms" screenOptions={{headerRight: () => (
-      <Button onPress={() => onSignOut} title="Sign Out" color="#fff"/>
+      <Button onPress={() => auth().signOut()} title="Sign Out"/>
     )}}>
       <Stack.Screen name="Rooms" component={Rooms}/>
       <Stack.Screen name="Chat" component={Chat}/>
@@ -45,15 +57,38 @@ function ChatStack() {
   )
 }
 
-function App(): JSX.Element {
+function Root(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
-  const [user, setUser] = useState(null);
+  const {user, setUser} = useContext(AuthenticatedUserContext);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    return auth().onAuthStateChanged((user) => {
+      setUser(user);
+      if (loading) setLoading(false);
+    })
+  }, [])
+
+  if (loading) return (
+    <SafeAreaView>
+      <ActivityIndicator size="large"/>
+      <Text>Loading ...</Text>
+    </SafeAreaView>
+  );
 
   return (
     <NavigationContainer>
       { user ? <ChatStack/> : <AuthStack/> }
     </NavigationContainer>
+  );
+}
+
+function App(): JSX.Element {
+  return (
+    <AuthenticatedUserProvider>
+      <Root/>
+    </AuthenticatedUserProvider>
   );
 }
 

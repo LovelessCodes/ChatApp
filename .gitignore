@@ -64,3 +64,9 @@ yarn-error.log
 
 # VS Code
 .vscode
+
+# Google Services
+google-services.json
+
+# Environment Variables
+env.ts
