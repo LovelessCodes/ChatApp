@@ -63,4 +63,4 @@ yarn-error.log
 .metro-health-check*
 
 # VS Code
-.vscode/*
+.vscode
