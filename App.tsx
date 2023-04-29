@@ -1,9 +1,9 @@
 import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Button, SafeAreaView, Text, useColorScheme } from 'react-native';
+import { ActivityIndicator, Button, SafeAreaView, Text, TouchableOpacity, useColorScheme } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 
-import { type RootStackParamList } from './lib';
+import { styles, type RootStackParamList } from './lib';
 
 // Screens
 import Login from './screens/login';
@@ -39,7 +39,10 @@ const AuthenticatedUserProvider = ({ children }: { children: ReactNode}) => {
 
 function AuthStack() {
   return (
-    <Stack.Navigator initialRouteName="Login">
+    <Stack.Navigator initialRouteName="Login" screenOptions={{
+      headerStyle: { backgroundColor: '#173448' },
+      headerTitleStyle: { color: '#F0F0F4', fontWeight: '700' },
+    }}>
       <Stack.Screen name="Login" component={Login}/>
     </Stack.Navigator>
   )
@@ -47,9 +50,15 @@ function AuthStack() {
 
 function ChatStack() {
   return (
-    <Stack.Navigator initialRouteName="Rooms" screenOptions={{headerRight: () => (
-      <Button onPress={() => auth().signOut()} title="Sign Out"/>
-    )}}>
+    <Stack.Navigator initialRouteName="Rooms" screenOptions={{
+      headerStyle: { backgroundColor: '#173448' },
+      headerTitleStyle: { color: '#F0F0F4', fontWeight: '700' },
+      headerRight: () => (
+        <TouchableOpacity onPress={() => auth().signOut()} style={styles.headerButton}>
+          <Text>Sign Out</Text>
+        </TouchableOpacity>
+      )}
+    }>
       <Stack.Screen name="Rooms" component={Rooms}/>
       <Stack.Screen name="Chat" component={Chat}/>
       <Stack.Screen name="Camera" component={Camera}/>

@@ -1,17 +1,15 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Button, Text, View } from "react-native";
-import { RootStackParamList } from "../lib";
+import { Text, View } from "react-native";
+import { RootStackParamList, styles } from "../lib";
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useState } from "react";
 import auth from '@react-native-firebase/auth';
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
+import SocialButton from "../components/socialButton";
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
-export default function Login({ navigation }: Props): JSX.Element {
-  // Todo:
-  // - Login with Google
-  // - Login with Facebook
 
+export default function Login({ navigation }: Props): JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   const facebookSignIn = async () => {
@@ -57,12 +55,10 @@ export default function Login({ navigation }: Props): JSX.Element {
     }
   }
   return (
-    <View>
-      <Text>Login</Text>
-      {/* Needs better error display */}
-      { error ? <Text>{error}</Text> : null }
-      <Button title="Login with Google" onPress={() => googleSignIn()}/>
-      <Button title="Login with Facebook" onPress={() => facebookSignIn()}></Button>
+    <View style={styles.loginView}>
+      <SocialButton icon="google" title="Login with Google" onPress={() => googleSignIn()}/>
+      <SocialButton icon="facebook" title="Login with Facebook" onPress={() => facebookSignIn()}/>
+      { error ? <View style={styles.errorBox}><Text style={styles.loginError}>{error}</Text></View> : null }
     </View>
   );
 }
