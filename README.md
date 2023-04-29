@@ -21,7 +21,47 @@ Built with React Native, utilizing Firebase as the underlying Database.
     * Leave the checkbox unticked
 7. You will now be presented with the environment variables you need in the `.env` file
 
+## Tasks
+1. ~~Splash Screen~~
+   * ~~Splash while loading app~~
+   * ~~Load login if not logged in, otherwise Chat rooms~~
+2. ~~Login Screen~~
+   * ~~Facebook & Google Login~~
+   * ~~When signed in go to Chat rooms~~
+   * ~~If error, show error~~
+3. ~~Chat rooms~~
+   * ~~List with name and short description~~
+   * ~~Chevron icon to the right~~
+   * ~~Sorted by newest message~~
+       * Doesn't refresh when returning from chat room (*yet*)
+   * ~~Pull to reload list~~
+   * ~~Load chat room when pressed~~
+4. ~~Send and receive messages~~
+   * ~~Load last 50 messages on load~~
+   * ~~Scroll to load more messages~~
+   * ~~Add to list when message received~~
+   * ~~Input field at the bottom~~
+       * ~~Open keyboard when pressed~~
+       * ~~Send and add message when user presses "Send" / "Enter"~~
+   * ~~Message consists of~~
+       * ~~Avatar and Name of sender~~
+       * ~~Date and Text of message~~
+5. Push functionality
+   * Ask for notifications, on first message in a room
+   * On new message in room, send push notification
+   * When notification is pressed, take the user to the room/message using deep links
+6. Upload of images to chat room
+   * Upload from camera
+   * Upload from gallery
+   * Image shown in chat
 
-> *Notes*
+## Work Hours
+This is a rough estimation of the days I've worked on this.
+| Day      | Hours     |
+|:--------:|:---------:|
+| Friday   | ~5 hours  |
+| Saturday | ~6 hours  |
+
+### *Notes*
 > - The application have not been tested for iOS, and I cannot guarantee it'll compile for iOS.
 > - The tests performed on android have been through Metro on a newer Android phone.

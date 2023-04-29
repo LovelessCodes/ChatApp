@@ -1,26 +1,25 @@
 import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Button, SafeAreaView, Text, TouchableOpacity, useColorScheme } from 'react-native';
+import { ActivityIndicator, SafeAreaView, Text, TouchableOpacity, useColorScheme } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 
 import { styles, type RootStackParamList } from './lib';
 
-// Screens
+import Camera from './screens/camera';
+import Chat from './screens/chat';
 import Login from './screens/login';
 import Rooms from './screens/rooms';
-import Chat from './screens/chat';
-import Camera from './screens/camera';
 
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { envs } from './env';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 GoogleSignin.configure({
-  webClientId: envs.WEB_CLIENT_ID,
+  webClientId: envs.GOOGLE_WEB_CLIENT_ID,
 })
 
 const AuthenticatedUserContext = createContext({
@@ -41,6 +40,7 @@ function AuthStack() {
   return (
     <Stack.Navigator initialRouteName="Login" screenOptions={{
       headerStyle: { backgroundColor: '#173448' },
+      animation: 'fade',
       headerTitleStyle: { color: '#F0F0F4', fontWeight: '700' },
     }}>
       <Stack.Screen name="Login" component={Login}/>
@@ -52,6 +52,7 @@ function ChatStack() {
   return (
     <Stack.Navigator initialRouteName="Rooms" screenOptions={{
       headerStyle: { backgroundColor: '#173448' },
+      animation: 'fade',
       headerTitleStyle: { color: '#F0F0F4', fontWeight: '700' },
       headerRight: () => (
         <TouchableOpacity onPress={() => auth().signOut()} style={styles.headerButton}>
@@ -80,9 +81,8 @@ function Root(): JSX.Element {
   }, [])
 
   if (loading) return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.centeredAll}>
       <ActivityIndicator size="large"/>
-      <Text>Loading ...</Text>
     </SafeAreaView>
   );
 

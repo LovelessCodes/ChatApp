@@ -1,18 +1,17 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Text, View } from "react-native";
-import { RootStackParamList, styles } from "../lib";
+import auth from '@react-native-firebase/auth';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useState } from "react";
-import auth from '@react-native-firebase/auth';
-import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
+import { ActivityIndicator, Text, View } from "react-native";
+import { AccessToken, LoginManager } from 'react-native-fbsdk-next';
 import SocialButton from "../components/socialButton";
+import { styles } from "../lib";
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
-
-export default function Login({ navigation }: Props): JSX.Element {
+export default function Login(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
+  const [loggingIn, setLoggingIn] = useState(false);
 
   const facebookSignIn = async () => {
+    setLoggingIn(true);
     const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
 
     if (result.isCancelled) {
@@ -34,6 +33,7 @@ export default function Login({ navigation }: Props): JSX.Element {
   }
 
   const googleSignIn = async () => {
+    setLoggingIn(true);
     try {
       await GoogleSignin.hasPlayServices();
       const { idToken } = await GoogleSignin.signIn();
@@ -54,10 +54,16 @@ export default function Login({ navigation }: Props): JSX.Element {
       }
     }
   }
+  if (loggingIn) return (
+    <View style={styles.centeredAll}>
+      <ActivityIndicator size={80}/>
+    </View>  
+  );
+
   return (
     <View style={styles.loginView}>
-      <SocialButton icon="google" title="Login with Google" onPress={() => googleSignIn()}/>
-      <SocialButton icon="facebook" title="Login with Facebook" onPress={() => facebookSignIn()}/>
+      <SocialButton icon="google" title="Login with Google" onPress={() => googleSignIn().then(() => setLoggingIn(false))}/>
+      <SocialButton icon="facebook" title="Login with Facebook" onPress={() => facebookSignIn().then(() => setLoggingIn(false))}/>
       { error ? <View style={styles.errorBox}><Text style={styles.loginError}>{error}</Text></View> : null }
     </View>
   );

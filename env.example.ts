@@ -1,3 +1,3 @@
 export const envs = {
-  WEB_CLIENT_ID: ""
+  GOOGLE_WEB_CLIENT_ID: ""
 }

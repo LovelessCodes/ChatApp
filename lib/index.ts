@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 export type RootStackParamList = {
   Login: undefined;
   Rooms: undefined;
-  Chat: { roomId: string | number };
+  Chat: { roomId: string | number, roomName: string };
   Camera: { messageId: string | number };
 }
 
@@ -11,30 +11,22 @@ export type Room = {
   _id: string | number;
   name: string;
   description: string;
-  createdAt?: Date | number;
-  updatedAt?: Date | number;
-}
-
-export type Reaction = {
-  _id: string | number;
-  messageId: string | number;
-  emoji: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastMessage?: Date;
 }
 
 export type Message = {
   _id: string | number;
+  roomId: string | number;
   text: string;
-  timestamp: Date | number;
+  createdAt: Date;
   user: {
     _id: string | number;
     name: string;
     avatar?: string;
   };
-  image?: string;
-  video?: string;
-  audio?: string;
-  system?: boolean;
-  edited?: boolean;
+  image?: boolean;
 }
 
 export const styles = StyleSheet.create({
@@ -60,18 +52,29 @@ export const styles = StyleSheet.create({
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
+    flex: 1,
   },
   room: {
     width: '100%',
     backgroundColor: 'rgba(255,255,255,0)',
-    borderColor: '#F0F0F4',
+    borderColor: 'rgba(255,255,255,.5)',
     borderBottomWidth: 1,
-    borderTopWidth: 1,
     paddingVertical: 15,
     paddingHorizontal: 30,
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    height: 100,
+  },
+  roomIcon: {
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roomText: {
+    display: 'flex',
+    flexDirection: 'column',
+    maxWidth: '80%',
   },
   roomTitle: {
     marginTop: 8,
@@ -88,6 +91,7 @@ export const styles = StyleSheet.create({
     color: '#F0F0F4',
     borderColor: '#F0F0F4',
     borderWidth: 1,
+    height: '10%',
     marginHorizontal: 25,
     marginVertical: 15,
     paddingVertical: 15,
@@ -112,6 +116,12 @@ export const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'center',
   },
+  centeredAll: {
+    backgroundColor: '#173448',
+    height: '100%',
+    justifyContent: "center",
+    alignItems: "center",
+  },
   errorBox: {
     width: '100%',
     justifyContent: "center",
@@ -128,26 +138,51 @@ export const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "space-between",
     backgroundColor: '#173448',
+    height: "100%",
+    flex: 1,
   },
   chatBox: {
-    display: "flex",
+    display: 'flex',
     backgroundColor: 'rgba(255,255,255,0)',
-    flexDirection: "column-reverse",
-    height: "95%",
+    height: '100%',
+    flex: 1,
   },
   msgBox: {
-    height: "5%",
-    display: "flex",
-    flexDirection: "row",
+    height: 50,
+    bottom: 0,
+    width: '100%',
     backgroundColor: 'rgba(255,255,255,.2)',
   },
   msgInput: {
-    width: "80%",
+    width: "100%",
     paddingHorizontal: 20,
   },
-  msgButton: {
-    width: "20%",
-    justifyContent: "center",
-    alignItems: "center"
+  msg: {
+    width: '100%',
+    display: 'flex',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,.1)',
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  msgView: {
+    width: '100%',
+    paddingHorizontal: 5,
+  },
+  msgAuthor: {
+    display: 'flex',
+    position: "relative",
+    flexDirection: 'row'
+  },
+  msgUser: {
+    position: "relative",
+    opacity: .5,
+  },
+  msgTime: {
+    opacity: .3,
+    position: "relative",
+    right: 0,
+    top: 0,
   }
 });

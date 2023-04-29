@@ -1,67 +1,129 @@
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Message, RootStackParamList, styles } from "../lib";
-import { useCallback, useLayoutEffect, useState } from "react";
-import auth from '@react-native-firebase/auth';
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import { useLayoutEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TextInput, View } from "react-native";
+import { styles, type Message, type RootStackParamList } from "../lib";
 
+dayjs.extend(relativeTime);
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export default function Chat({ navigation, route }: Props): JSX.Element {
 
-  navigation.setOptions({ title: route.params.roomId.toString() })
-
   const [ msgs, setMsgs ] = useState<Message[]>([]);
   const [ loading, setLoading ] = useState<boolean>(true);
+  const [ refreshing, setRefreshing ] = useState<boolean>(false);
   const [ limit, setLimit ] = useState<number>(50);
+
+  const [msgText, setMsgText] = useState<string>('');
 
   const msgDocu = firestore().collection('messages');
 
   useLayoutEffect(() => {
-    const subscribe = msgDocu.limit(limit).onSnapshot(snapshot => {
-      setMsgs(snapshot.docs.map(doc => {
+    const unsubscribe = msgDocu.limit(limit).where('roomId', '==', route.params.roomId).orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+      Promise.all(snapshot.docs.map(doc => {
         const data = doc.data();
         return {
           _id: doc.id,
+          roomId: data.roomId,
           text: data.text,
-          timestamp: data.timestamp,
+          createdAt: data.createdAt.toDate(),
           user: data.user,
           image: data.image,
-          video: data.video,
-          audio: data.audio,
-          system: data.system,
-          edited: data.edited,
         }
-      }));
+      })).then((result: Message[]) => {
+        setMsgs(result);
+        if (loading) setLoading(false);
+        if (refreshing) setRefreshing(false);
+      })
     })
-    if (loading) setLoading(false);
-    return () => subscribe();
-  }, []);
+    navigation.setOptions({
+      headerTitle: route.params.roomName,
+    })
+    return () => unsubscribe();
+  }, [limit]);
+
+  const loadMore = () => {
+    if (refreshing) return;
+    if (msgs.length < limit) return;
+    setRefreshing(true);
+    setLimit(limit + 50);
+  };
+
+  const sendMsg = () => {
+    msgDocu.add({
+      roomId: route.params.roomId,
+      text: msgText,
+      createdAt: new Date(),
+      user: {
+        _id: auth().currentUser?.uid,
+        name: auth().currentUser?.displayName,
+        avatar: auth().currentUser?.photoURL,
+      },
+    });
+    setMsgText('');
+  }
+
+  function renderMessage({ item }: {item: Message}) {
+    return (
+      <View key={item._id} style={styles.msg}>
+        <View>
+          <Image source={{ uri: item.user.avatar }} style={{ height: 50, width: 50 }}/>
+        </View>
+        <View style={styles.msgView}>
+          {item.user._id == auth().currentUser?.uid ? (
+            <View style={styles.msgAuthor}>
+              <Text style={styles.msgUser}>You</Text>
+              <Text style={styles.msgTime}>   • {dayjs(item.createdAt).fromNow()}</Text>
+            </View>
+          ) : (
+            <View style={styles.msgAuthor}>
+              <Text style={styles.msgUser}>{item.user.name}</Text>
+              <Text style={styles.msgTime}>{dayjs(item.createdAt).fromNow()}</Text>
+            </View>
+          )}
+          <Text>{item.text}</Text>
+        </View>
+      </View>
+    )
+  }
 
   // Todo:
-  // - Chat
   // - Send picture
-  // - Send text
-  // - Send emoji
-  // - Reply
-  // - Edit
-  // - Delete
-  // - Avatars
-  // - Timestamps
-  // - Get last 50 messages in Room with Room ID
-  // - Get pagination of messages
+
+  if (loading) return (
+    <View style={styles.centeredAll}>
+      <ActivityIndicator size={80}/>
+    </View>
+  );
+
   return (
     <View style={styles.chatView}>
-      <View style={styles.chatBox}>
-        {/* Insert a map with the loaded messages */}
-      </View>
+      <FlatList
+        style={styles.chatBox}
+        onEndReached={() => loadMore()}
+        renderItem={renderMessage}
+        data={msgs}
+        inverted={true}
+        refreshControl={
+          <RefreshControl refreshing={refreshing}/>
+        }
+        />
       <View style={styles.msgBox}>
-        <TextInput placeholder="Message ..." style={styles.msgInput} />
-        <TouchableOpacity style={styles.msgButton}>
-          <Text>Send</Text>
-        </TouchableOpacity>
+        <TextInput
+          multiline={false}
+          value={msgText}
+          onChangeText={setMsgText}
+          onSubmitEditing={(e) => {
+            e.preventDefault()
+            sendMsg()
+          }}
+          placeholder="Message ..."
+          style={styles.msgInput}
+          />
       </View>
-      {/* <Button title="Camera" onPress={() => navigation.navigate('Camera')}/> */}
     </View>
   );
 }
