@@ -151,10 +151,11 @@ export const styles = StyleSheet.create({
     height: 50,
     bottom: 0,
     width: '100%',
+    flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,.2)',
   },
   msgInput: {
-    width: "100%",
+    width: "85%",
     paddingHorizontal: 20,
   },
   msg: {
@@ -184,5 +185,11 @@ export const styles = StyleSheet.create({
     position: "relative",
     right: 0,
     top: 0,
-  }
+  },
+  cameraButton: {
+    width: '15%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,.3)'
+  },
 });

@@ -1,10 +1,13 @@
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useLayoutEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import { styles, type Message, type RootStackParamList } from "../lib";
 
 dayjs.extend(relativeTime);
@@ -15,6 +18,7 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
   const [ msgs, setMsgs ] = useState<Message[]>([]);
   const [ loading, setLoading ] = useState<boolean>(true);
   const [ refreshing, setRefreshing ] = useState<boolean>(false);
+  const [ showImage, setShowImage ] = useState<boolean>(false);
   const [ limit, setLimit ] = useState<number>(50);
 
   const [msgText, setMsgText] = useState<string>('');
@@ -52,16 +56,56 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
     setLimit(limit + 50);
   };
 
-  const sendMsg = () => {
+  const openGallery = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      includeExtra: true,
+    });
+    if (result.didCancel) return;
+    if (result.errorMessage) return;
+    if (!result.assets) return;
+    if (result.assets.length == 0) return;
+    if (!result.assets[0].uri) return;
+    const user = auth().currentUser;
+    if (!user) return;
+    const reference = storage().ref(`${user.uid} ${dayjs(result.assets[0].timestamp).unix()}.jpg`);
+    await reference.putFile(result.assets[0].uri);
+    const url = await reference.getDownloadURL();
+    sendMsg(url, true);
+    setShowImage(false);
+  }
+
+  const openCamera = async () => {
+    const result = await launchCamera({
+      mediaType: 'photo',
+      includeExtra: true,
+      saveToPhotos: true,
+    });
+    if (result.didCancel) return;
+    if (result.errorMessage) return;
+    if (!result.assets) return;
+    if (result.assets.length == 0) return;
+    if (!result.assets[0].uri) return;
+    const user = auth().currentUser;
+    if (!user) return;
+    const reference = storage().ref(`${user.uid} ${dayjs(result.assets[0].timestamp).unix()}.jpg`);
+    await reference.putFile(result.assets[0].uri);
+    const url = await reference.getDownloadURL();
+    sendMsg(url, true);
+    setShowImage(false);
+  }
+
+  const sendMsg = (text: string = "", image: boolean = false) => {
     msgDocu.add({
       roomId: route.params.roomId,
-      text: msgText,
+      text: text != "" ? text : msgText,
       createdAt: new Date(),
       user: {
         _id: auth().currentUser?.uid,
         name: auth().currentUser?.displayName,
         avatar: auth().currentUser?.photoURL,
       },
+      image: image ? image : null,
     });
     setMsgText('');
   }
@@ -84,7 +128,11 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
               <Text style={styles.msgTime}>{dayjs(item.createdAt).fromNow()}</Text>
             </View>
           )}
-          <Text>{item.text}</Text>
+          {item.image && item.text != "" ? (
+            <Image source={{ uri: item.text }} style={{ height: 200, width: 200 }}/>
+          ) : (
+            <Text>{item.text}</Text>
+          )}
         </View>
       </View>
     )
@@ -111,19 +159,50 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
           <RefreshControl refreshing={refreshing}/>
         }
         />
-      <View style={styles.msgBox}>
-        <TextInput
-          multiline={false}
-          value={msgText}
-          onChangeText={setMsgText}
-          onSubmitEditing={(e) => {
-            e.preventDefault()
-            sendMsg()
-          }}
-          placeholder="Message ..."
-          style={styles.msgInput}
-          />
-      </View>
+        {showImage ? (
+          <View style={styles.msgBox}>
+            <TouchableOpacity style={styles.cameraButton} onPress={() => openCamera()}>
+              <Icon name="camera" size={24}/>
+              <Text>Camera</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cameraButton} onPress={() => openGallery()}>
+              <Icon name="image" size={24}/>
+              <Text>Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{...styles.cameraButton, width: '7%'}} onPress={() => setShowImage(false)}>
+              <Icon name="chevron-left" size={16}/>
+            </TouchableOpacity>
+            <TextInput
+              multiline={false}
+              value={msgText}
+              onChangeText={setMsgText}
+              onSubmitEditing={(e) => {
+                e.preventDefault()
+                sendMsg()
+              }}
+              placeholder="Message ..."
+              style={styles.msgInput}
+              />
+          </View>
+        ):
+        (
+          <View style={styles.msgBox}>
+            <TouchableOpacity style={styles.cameraButton} onPress={() => setShowImage(true)}>
+              <Icon name="plus" size={24}/>
+            </TouchableOpacity>
+            <TextInput
+              multiline={false}
+              value={msgText}
+              onChangeText={setMsgText}
+              onSubmitEditing={(e) => {
+                e.preventDefault()
+                sendMsg()
+              }}
+              placeholder="Message ..."
+              style={styles.msgInput}
+              />
+          </View>
+        )}
     </View>
   );
 }

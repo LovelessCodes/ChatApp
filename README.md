@@ -50,13 +50,13 @@ Built with React Native, utilizing Firebase as the underlying Database.
    * Ask for notifications, on first message in a room
    * On new message in room, send push notification
    * When notification is pressed, take the user to the room/message using deep links
-6. Upload of images to chat room
-   * Upload from camera
-   * Upload from gallery
-   * Image shown in chat
+6. ~~Upload of images to chat room~~
+   * ~~Upload from camera~~
+   * ~~Upload from gallery~~
+   * ~~Image shown in chat~~
 
 ## Work Hours
-This is a rough estimation of the days I've worked on this.
+This is a rough estimation of the hours I've worked on this.
 | Day      | Hours     |
 |:--------:|:---------:|
 | Friday   | ~5 hours  |
