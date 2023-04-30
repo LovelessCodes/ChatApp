@@ -193,3 +193,8 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,.3)'
   },
 });
+
+export function trimStr(str: string) {
+  if(!str) return str;
+  return str.replace(/^\s+|\s+$/g, '').replace(/\s{2,}/g, ' ');
+}

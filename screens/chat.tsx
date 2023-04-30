@@ -8,7 +8,7 @@ import { useLayoutEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { styles, type Message, type RootStackParamList } from "../lib";
+import { styles, trimStr, type Message, type RootStackParamList } from "../lib";
 
 dayjs.extend(relativeTime);
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
@@ -96,16 +96,20 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
   }
 
   const sendMsg = (text: string = "", image: boolean = false) => {
+    if (trimStr(text) == "" && trimStr(msgText) == "") {
+      setMsgText('');
+      return
+    };
     msgDocu.add({
       roomId: route.params.roomId,
-      text: text != "" ? text : msgText,
+      text: text != "" ? trimStr(text) : trimStr(msgText),
       createdAt: new Date(),
       user: {
         _id: auth().currentUser?.uid,
         name: auth().currentUser?.displayName,
         avatar: auth().currentUser?.photoURL,
       },
-      image: image ? image : null,
+      image: image,
     });
     setMsgText('');
   }
@@ -128,7 +132,7 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
               <Text style={styles.msgTime}>{dayjs(item.createdAt).fromNow()}</Text>
             </View>
           )}
-          {item.image && item.text != "" ? (
+          {item.image ? (
             <Image source={{ uri: item.text }} style={{ height: 200, width: 200 }}/>
           ) : (
             <Text>{item.text}</Text>
