@@ -13,6 +13,7 @@ import type { RootStackParamList } from './lib/types';
 import Chat from './screens/chat';
 import Login from './screens/login';
 import Rooms from './screens/rooms';
+import SplashScreen from "react-native-splash-screen";
 
 import { PermissionsAndroid } from 'react-native';
 PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -93,6 +94,7 @@ function Root(): JSX.Element {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    SplashScreen.hide();
     return auth().onAuthStateChanged((user) => {
       setUser(user);
       if (loading) setLoading(false);
