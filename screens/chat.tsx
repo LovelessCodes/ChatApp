@@ -5,22 +5,22 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useLayoutEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { styles, trimStr, type Message, type RootStackParamList } from "../lib";
+import { joinRoom, styles, trimStr, userRooms } from "../lib";
+import type { Message, RootStackParamList } from "../lib/types";
 
 dayjs.extend(relativeTime);
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export default function Chat({ navigation, route }: Props): JSX.Element {
 
-  const [ msgs, setMsgs ] = useState<Message[]>([]);
-  const [ loading, setLoading ] = useState<boolean>(true);
-  const [ refreshing, setRefreshing ] = useState<boolean>(false);
-  const [ showImage, setShowImage ] = useState<boolean>(false);
-  const [ limit, setLimit ] = useState<number>(50);
-
+  const [msgs, setMsgs] = useState<Message[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [showImage, setShowImage] = useState<boolean>(false);
+  const [limit, setLimit] = useState<number>(50);
   const [msgText, setMsgText] = useState<string>('');
 
   const msgDocu = firestore().collection('messages');
@@ -56,11 +56,20 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
     setLimit(limit + 50);
   };
 
-  const openGallery = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      includeExtra: true,
-    });
+  const uploadImage = async (type: string) => {
+    let result;
+    if (type == "gallery") {
+      result = await launchImageLibrary({
+        mediaType: 'photo',
+        includeExtra: true,
+      });
+    } else {
+      result = await launchCamera({
+        mediaType: 'photo',
+        includeExtra: true,
+        saveToPhotos: true,
+      });
+    }
     if (result.didCancel) return;
     if (result.errorMessage) return;
     if (!result.assets) return;
@@ -75,34 +84,43 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
     setShowImage(false);
   }
 
-  const openCamera = async () => {
-    const result = await launchCamera({
-      mediaType: 'photo',
-      includeExtra: true,
-      saveToPhotos: true,
-    });
-    if (result.didCancel) return;
-    if (result.errorMessage) return;
-    if (!result.assets) return;
-    if (result.assets.length == 0) return;
-    if (!result.assets[0].uri) return;
-    const user = auth().currentUser;
-    if (!user) return;
-    const reference = storage().ref(`${user.uid} ${dayjs(result.assets[0].timestamp).unix()}.jpg`);
-    await reference.putFile(result.assets[0].uri);
-    const url = await reference.getDownloadURL();
-    sendMsg(url, true);
-    setShowImage(false);
-  }
-
-  const sendMsg = (text: string = "", image: boolean = false) => {
-    if (trimStr(text) == "" && trimStr(msgText) == "") {
+  const isUserApartOfRoom = async (text: string = "", image: boolean = false) => {
+    let actualText = text != "" ? trimStr(text) : trimStr(msgText)
+    if (actualText == "" && !image) {
       setMsgText('');
       return
     };
+
+    if (auth().currentUser == null) return;
+
+    const rooms = await userRooms(auth().currentUser!.uid);
+    if (!rooms.find((room: string | number) => room == route.params.roomId)) {
+      Alert.alert(`Join ${route.params.roomName}?`, `I can see you are not a member of this room. Do you want to join?`, [
+        { text: 'Cancel', style: 'cancel', onPress: () => { setMsgText(''); } },
+        {
+          text: 'Join', onPress: () => {
+            joinRoom(auth().currentUser!.uid, route.params.roomId)
+            if (image) {
+              uploadImage(text);
+            } else {
+              sendMsg(actualText, image)
+            }
+          }
+        },
+      ]);
+    } else {
+      if (image) {
+        uploadImage(text);
+      } else {
+        sendMsg(actualText, image)
+      }
+    }
+  }
+
+  const sendMsg = async (text: string, image: boolean) => {
     msgDocu.add({
       roomId: route.params.roomId,
-      text: text != "" ? trimStr(text) : trimStr(msgText),
+      text: text,
       createdAt: new Date(),
       user: {
         _id: auth().currentUser?.uid,
@@ -114,11 +132,11 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
     setMsgText('');
   }
 
-  function renderMessage({ item }: {item: Message}) {
+  function renderMessage({ item }: { item: Message }) {
     return (
       <View key={item._id} style={styles.msg}>
         <View>
-          <Image source={{ uri: item.user.avatar }} style={{ height: 50, width: 50 }}/>
+          <Image source={{ uri: item.user.avatar }} style={{ height: 50, width: 50 }} />
         </View>
         <View style={styles.msgView}>
           {item.user._id == auth().currentUser?.uid ? (
@@ -133,7 +151,7 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
             </View>
           )}
           {item.image ? (
-            <Image source={{ uri: item.text }} style={{ height: 200, width: 200 }}/>
+            <Image source={{ uri: item.text }} style={{ height: 200, width: 200 }} />
           ) : (
             <Text>{item.text}</Text>
           )}
@@ -142,12 +160,9 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
     )
   }
 
-  // Todo:
-  // - Send picture
-
   if (loading) return (
     <View style={styles.centeredAll}>
-      <ActivityIndicator size={80}/>
+      <ActivityIndicator size={80} />
     </View>
   );
 
@@ -160,39 +175,39 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
         data={msgs}
         inverted={true}
         refreshControl={
-          <RefreshControl refreshing={refreshing}/>
+          <RefreshControl refreshing={refreshing} />
         }
-        />
-        {showImage ? (
-          <View style={styles.msgBox}>
-            <TouchableOpacity style={styles.cameraButton} onPress={() => openCamera()}>
-              <Icon name="camera" size={24}/>
-              <Text>Camera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cameraButton} onPress={() => openGallery()}>
-              <Icon name="image" size={24}/>
-              <Text>Gallery</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{...styles.cameraButton, width: '7%'}} onPress={() => setShowImage(false)}>
-              <Icon name="chevron-left" size={16}/>
-            </TouchableOpacity>
-            <TextInput
-              multiline={false}
-              value={msgText}
-              onChangeText={setMsgText}
-              onSubmitEditing={(e) => {
-                e.preventDefault()
-                sendMsg()
-              }}
-              placeholder="Message ..."
-              style={styles.msgInput}
-              />
-          </View>
-        ):
+      />
+      {showImage ? (
+        <View style={styles.msgBox}>
+          <TouchableOpacity style={styles.cameraButton} onPress={() => isUserApartOfRoom("camera", true)}>
+            <Icon name="camera" size={24} />
+            <Text>Camera</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cameraButton} onPress={() => isUserApartOfRoom("gallery", true)}>
+            <Icon name="image" size={24} />
+            <Text>Gallery</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ ...styles.cameraButton, width: '7%' }} onPress={() => setShowImage(false)}>
+            <Icon name="chevron-left" size={16} />
+          </TouchableOpacity>
+          <TextInput
+            multiline={false}
+            value={msgText}
+            onChangeText={setMsgText}
+            onSubmitEditing={(e) => {
+              e.preventDefault()
+              isUserApartOfRoom()
+            }}
+            placeholder="Message ..."
+            style={styles.msgInput}
+          />
+        </View>
+      ) :
         (
           <View style={styles.msgBox}>
             <TouchableOpacity style={styles.cameraButton} onPress={() => setShowImage(true)}>
-              <Icon name="plus" size={24}/>
+              <Icon name="plus" size={24} />
             </TouchableOpacity>
             <TextInput
               multiline={false}
@@ -200,11 +215,11 @@ export default function Chat({ navigation, route }: Props): JSX.Element {
               onChangeText={setMsgText}
               onSubmitEditing={(e) => {
                 e.preventDefault()
-                sendMsg()
+                isUserApartOfRoom()
               }}
               placeholder="Message ..."
               style={styles.msgInput}
-              />
+            />
           </View>
         )}
     </View>

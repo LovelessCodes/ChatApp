@@ -1,33 +1,7 @@
+import firestore from '@react-native-firebase/firestore';
+import messaging from '@react-native-firebase/messaging';
 import { StyleSheet } from "react-native";
 
-export type RootStackParamList = {
-  Login: undefined;
-  Rooms: undefined;
-  Chat: { roomId: string | number, roomName: string };
-  Camera: { messageId: string | number };
-}
-
-export type Room = {
-  _id: string | number;
-  name: string;
-  description: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  lastMessage?: Date;
-}
-
-export type Message = {
-  _id: string | number;
-  roomId: string | number;
-  text: string;
-  createdAt: Date;
-  user: {
-    _id: string | number;
-    name: string;
-    avatar?: string;
-  };
-  image?: boolean;
-}
 
 export const styles = StyleSheet.create({
   sectionContainer: {
@@ -195,6 +169,39 @@ export const styles = StyleSheet.create({
 });
 
 export function trimStr(str: string) {
-  if(!str) return str;
+  if (!str) return str;
   return str.replace(/^\s+|\s+$/g, '').replace(/\s{2,}/g, ' ');
+}
+
+export function userRooms(userId: string | number) {
+  const subDocu = firestore().collection('subscriptions').doc(userId.toString());
+
+  return subDocu.get().then((doc) => {
+    if (doc.exists) {
+      const data = doc.data();
+      if (data) {
+        return data.rooms;
+      }
+    }
+    return [];
+  }).catch((err) => {
+    console.log(err)
+    return [];
+  });
+}
+
+export function joinRoom(userId: string | number, roomId: string | number) {
+  messaging().subscribeToTopic(roomId.toString()).then(() => {
+    console.log('Subscribed to topic!');
+  });
+
+  const subDocu = firestore().collection('subscriptions').doc(userId.toString());
+
+  subDocu.set({
+    rooms: firestore.FieldValue.arrayUnion(roomId)
+  }, { merge: true }).then(() => {
+    console.log('Room joined');
+  }).catch((err) => {
+    console.log(err);
+  })
 }

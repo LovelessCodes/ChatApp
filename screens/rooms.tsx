@@ -5,29 +5,22 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { useLayoutEffect, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { styles, type Room, type RootStackParamList } from "../lib";
+import { styles } from "../lib";
+import type { Room, RootStackParamList } from "../lib/types";
 
 dayjs.extend(relativeTime);
 type Props = NativeStackScreenProps<RootStackParamList, 'Rooms'>;
 
 export default function Rooms({ navigation }: Props): JSX.Element {
 
-  const [ rooms, setRooms ] = useState<Room[]>([]);
-  const [ refreshing, setRefreshing ] = useState<boolean>(false);
-  const [ loading, setLoading ] = useState<boolean>(true);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const roomDocu = firestore().collection('rooms').limit(10);
   const msgDocu = firestore().collection('messages');
 
-  useLayoutEffect(() => {
-    refresh();
-  }, []);
-
-  new Promise((resolve, reject) => {
-    
-  })
-
-  async function refresh() {
+  const refresh = async () => {
     if (refreshing) return;
     setRefreshing(true);
     roomDocu.get().then(async snapshot => {
@@ -50,29 +43,32 @@ export default function Rooms({ navigation }: Props): JSX.Element {
     })
   };
 
-  function renderRoom({ item }: { item: Room}) {
+  useLayoutEffect(() => {
+    refresh();
+  }, []);
+
+  function renderRoom({ item }: { item: Room }) {
     return (
       <TouchableOpacity key={item._id} onPress={() => navigation.navigate('Chat', { roomId: item._id, roomName: item.name })} style={styles.room}>
         <View>
           <Text style={styles.roomTitle}>{item.name}</Text>
           <Text style={styles.roomDescription}>{item.description}</Text>
-          <Text style={{ opacity:.1 }}>{item.lastMessage ? dayjs(item.lastMessage).fromNow() : 'No last message'}</Text>
+          <Text style={{ opacity: .1 }}>{item.lastMessage ? dayjs(item.lastMessage).fromNow() : 'No last message'}</Text>
         </View>
         <View style={styles.roomIcon}>
-          <Icon name="chevron-right" size={20}/>
+          <Icon name="chevron-right" size={20} />
         </View>
       </TouchableOpacity>
     )
   }
 
   if (loading) return (
-    // Might as well make this a component
     <View style={styles.centeredAll}>
-      <ActivityIndicator size={80}/>
+      <ActivityIndicator size={80} />
     </View>
   );
 
-  if (rooms.length === 0){
+  if (rooms.length === 0) {
     return (
       <View style={styles.centeredAll}>
         <Text>No Rooms</Text>
@@ -89,8 +85,8 @@ export default function Rooms({ navigation }: Props): JSX.Element {
             dayjs(b.lastMessage).unix() - dayjs(a.lastMessage).unix() :
             0
         )}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh}/>}
-        />
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      />
     </View>
   );
 }
