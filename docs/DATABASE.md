@@ -20,7 +20,7 @@
 5. Download the config file
     * If you got the error on the 8th step, the config file can be found by going back and refreshing the site, there after clicking the android icon with the nickname you set for the app.
     * There will be a button that says `google-services.json`, click it and it'll download.
-6. Put the config file you just downloaded, into `.android/app/` inside the project folder.
+6. Put the config file you just downloaded, into `android/app/` inside the project folder.
 
 ## Indexes
 1. Go to the project in the [Firebase Console](https://console.firebase.google.com/)
